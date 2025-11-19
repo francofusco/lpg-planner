@@ -1,0 +1,13 @@
+# Exclude build directory.
+build
+
+# Ignore notebooks, I use them only for proof of concepts
+**/*.ipynb
+**/.ipynb_checkpoints
+
+# Remove scripts data and tests
+scripts/data
+scripts/tests
+
+# Ignore QtCreator's CMakeLists file.
+CMakeLists.txt.user

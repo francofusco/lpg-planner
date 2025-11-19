@@ -1,0 +1,5 @@
+<RCC>
+  <qresource>
+    <file>lpg_planner/map.qml</file>
+  </qresource>
+</RCC>
