@@ -174,12 +174,14 @@ void LpgPlanner::solve(
 
   QList<int> stations_ids;
   QList<double> stations_prices, stations_latitudes, stations_longitudes;
-  ok = database_->stations(
+  ok = database_->findStations(
     db_filter,
-    stations_ids,
-    stations_prices,
-    stations_latitudes,
-    stations_longitudes
+    &stations_ids,
+    &stations_prices,
+    &stations_latitudes,
+    &stations_longitudes,
+    nullptr,
+    nullptr
   );
 
   if(!ok) {
@@ -366,12 +368,14 @@ void LpgPlanner::solve(
 
   QList<int> departure_stations_ids;
   QList<double> departure_stations_prices, departure_stations_latitudes, departure_stations_longitudes;
-  ok = database_->stations(
+  ok = database_->findStations(
     db_filter,
-    departure_stations_ids,
-    departure_stations_prices,
-    departure_stations_latitudes,
-    departure_stations_longitudes
+    &departure_stations_ids,
+    &departure_stations_prices,
+    &departure_stations_latitudes,
+    &departure_stations_longitudes,
+    nullptr,
+    nullptr
   );
 
   if(ok && departure_stations_ids.size() > 0) {
@@ -410,12 +414,14 @@ void LpgPlanner::solve(
 
   QList<int> arrival_stations_ids;
   QList<double> arrival_stations_prices, arrival_stations_latitudes, arrival_stations_longitudes;
-  ok = database_->stations(
+  ok = database_->findStations(
     db_filter,
-    arrival_stations_ids,
-    arrival_stations_prices,
-    arrival_stations_latitudes,
-    arrival_stations_longitudes
+    &arrival_stations_ids,
+    &arrival_stations_prices,
+    &arrival_stations_latitudes,
+    &arrival_stations_longitudes,
+    nullptr,
+    nullptr
   );
 
   if(ok && arrival_stations_ids.size() > 0) {

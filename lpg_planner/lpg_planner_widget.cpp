@@ -149,30 +149,15 @@ void LpgPlannerWidget::showResult(LpgRoute solution) {
     ids[i] = solution.stops[i].idx;
   }
 
+  QList<double> prices;
   QStringList addresses;
-  if(!database_->stationsAddresses(ids, addresses)) {
+  if(!database_->stationsFromIds(ids, &prices, nullptr, nullptr, nullptr, &addresses)) {
     QMessageBox::critical(
       this,
       "Unexpected error",
-      "Failed to access addresses from the database"
+      "Failed to access prices & addresses from the database"
     );
-    addresses.resize(solution.stops.size());
-    for(unsigned int i=0; i<solution.stops.size(); i++) {
-      addresses[i] = "not available";
-    }
-  }
-
-  QList<double> prices, _placeholder1, _placeholder2;
-  if(!database_->stationsInfo(ids, prices, _placeholder1, _placeholder2)) {
-    QMessageBox::critical(
-      this,
-      "Unexpected error",
-      "Failed to access addresses from the database"
-      );
-    addresses.resize(solution.stops.size());
-    for(unsigned int i=0; i<solution.stops.size(); i++) {
-      addresses[i] = "not available";
-    }
+    return;
   }
 
   qDebug() << "Filling results table";

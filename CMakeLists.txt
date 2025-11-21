@@ -18,6 +18,7 @@ qt_add_executable(lpg_planner
     MANUAL_FINALIZATION
     lpg_planner/database_manager.hpp
     lpg_planner/database_manager.cpp
+    lpg_planner/database_manager_filter.cpp
     lpg_planner/lpg_planner.hpp
     lpg_planner/lpg_planner.cpp
     lpg_planner/lpg_planner_widget.hpp
