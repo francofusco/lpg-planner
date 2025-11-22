@@ -2,4 +2,10 @@
   <qresource>
     <file>lpg_planner/map.qml</file>
   </qresource>
+
+  <qresource prefix="/icons">
+    <file alias="pin-green.png">resources/icons/pin-green.png</file>
+    <file alias="pin-red.png">resources/icons/pin-red.png</file>
+    <file alias="pump.ico">resources/icons/pump.ico</file>
+  </qresource>
 </RCC>

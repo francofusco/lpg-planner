@@ -102,3 +102,9 @@ A helper script named `mylpg-pois-to-json.py` is also included, which allows to 
 - Display the final route, including the detours for LPG!
 - Interactive map: allow zooming and panning
 - Allow managing the API key for ORS and the database directly from the app
+
+
+## Credits
+
+Here is a list of resources found on the web and used in this project, with corresponding attributions:
+- The gas station icon was derived from [Gas station icons created by nawicon - Flaticon](https://www.flaticon.com/free-icons/gas-station)

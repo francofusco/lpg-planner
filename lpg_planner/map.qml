@@ -7,14 +7,11 @@ Item {
     width: 700
     height: 800
 
-    // Size of the dots used to show where stops are to be made.
-    readonly property int marker_size: 8
-
     // Array to be dynamically filled to show the driving path.
-    property var routePath: []
+    property var route_path: []
 
     Map {
-        id: myMap
+        id: the_map
         anchors.fill: parent
         plugin: Plugin {
             name: "osm" // OpenStreetMap plugin.
@@ -29,34 +26,33 @@ Item {
             id: polyline
             line.width: 4
             line.color: "blue"
-            path: routePath
+            path: route_path
         }
 
         // List of markers represeting LPG stations.
         ListModel {
-            id: markerModel
+            id: markers_list
         }
 
         // View for the stations.
         MapItemView {
-            model: markerModel
+            model: markers_list
 
             // How individual markers are to be shown.
             delegate: MapQuickItem {
                 id: marker
                 coordinate: QtPositioning.coordinate(model.latitude, model.longitude)
-                z: 100
-                width: marker_size
-                height: marker_size
+                width: model.icon_size
+                height: model.icon_size
 
-                anchorPoint.x: marker_size/2
-                anchorPoint.y: marker_size/2
+                anchorPoint.x: model.icon_size/2
+                anchorPoint.y: 1+model.icon_size
 
-                sourceItem: Rectangle {
-                    width: marker_size
-                    height: marker_size
-                    radius: marker_size/2
-                    color: model.color
+                sourceItem: Image {
+                    source: model.icon_file
+                    width: model.icon_size
+                    height: model.icon_size
+                    fillMode: Image.PreserveAspectFit
                 }
             }
         }
@@ -64,19 +60,20 @@ Item {
 
     // Function to update the path and recenter the map.
     function updatePath(path, center, zoom) {
-        routePath = path
-        myMap.center = QtPositioning.coordinate(center.latitude, center.longitude)
-        myMap.zoomLevel = zoom
+        route_path = path
+        the_map.center = QtPositioning.coordinate(center.latitude, center.longitude)
+        the_map.zoomLevel = zoom
     }
 
     // Function to update the list of stations.
-    function showMarkers(markerList) {
-        markerModel.clear()
-        for(var i=0; i<markerList.length; i++) {
-            markerModel.append({
-                latitude: markerList[i].latitude,
-                longitude: markerList[i].longitude,
-                color: markerList[i].stop ? "red" : "gray"
+    function showMarkers(markers_properties) {
+        markers_list.clear()
+        for(var i=0; i<markers_properties.length; i++) {
+            markers_list.append({
+                latitude: markers_properties[i].latitude,
+                longitude: markers_properties[i].longitude,
+                icon_file: "qrc:/icons/pin-%1.png".arg(markers_properties[i].stop ? "green" : "red"),
+                icon_size: markers_properties[i].stop ? 32 : 24
             })
         }
     }

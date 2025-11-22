@@ -8,6 +8,10 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+  // Styling: set title and icon of the App.
+  setWindowTitle("LPG Planner");
+  setWindowIcon(QIcon(":/icons/pump.ico"));
+
   // Check if we can load an API key for OpenRouteSerivce; if so, create a
   // RouterOpenRouteService and use it!
   if(!RouterOpenRouteService::key(this).isEmpty()) {
