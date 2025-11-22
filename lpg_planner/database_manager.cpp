@@ -29,20 +29,6 @@ DatabaseManager::DatabaseManager(
     router_ = new RouterService(this);
     DISTANCE_TABLE_NAME = "HaversineDistances";
   }
-
-  // Initialize the database.
-  QSqlError error = initDatabase(parent_widget_);
-  if(error.type() != QSqlError::NoError) {
-    QMessageBox::critical(
-      parent_widget_,
-      "Unable to initialize Database",
-      "Error initializing database: " + error.text()
-      );
-    return;
-  }
-
-  // Signals that the database was initialized correctly.
-  db_ok_ = true;
 }
 
 
@@ -388,7 +374,12 @@ bool DatabaseManager::distanceMatrix(
 }
 
 
-bool DatabaseManager::validDatabase(QSqlDatabase& db, const QMap<QString, QSet<QString>>& expected_tables) {
+// Helper function that can determine if a databse has the expected structure.
+bool openAndValidate(
+  QSqlDatabase& db,
+  const QMap<QString, QSet<QString>>& expected_tables
+)
+{
   // Check that we can access the given file.
   if(!db.open())
     return false;
@@ -396,8 +387,10 @@ bool DatabaseManager::validDatabase(QSqlDatabase& db, const QMap<QString, QSet<Q
   // Make sure the DB contains the required table and columns.
   for(const auto [table_name, required_columns] : expected_tables.asKeyValueRange()) {
     // Does the DB contain the required table?
-    if(!db.tables().contains(table_name))
+    if(!db.tables().contains(table_name)) {
+      db.close();
       return false;
+    }
 
     // Does the table contain the expected columns?
     QSqlRecord r = QSqlQuery("SELECT * FROM " + table_name).record();
@@ -405,40 +398,37 @@ bool DatabaseManager::validDatabase(QSqlDatabase& db, const QMap<QString, QSet<Q
     for(int i=0; i<r.count(); i++) {
       existing_columns << r.fieldName(i).toLower();
     }
-    if(!existing_columns.contains(required_columns))
+    if(!existing_columns.contains(required_columns)) {
+      db.close();
       return false;
+    }
   }
+
   return true;
 }
 
 
-QSqlError DatabaseManager::initDatabase(
-  QWidget* qmessagebox_parent
-)
-{
+QString DatabaseManager::loadDatabase() {
   // Sanity check to be able to use SQLite.
   if(!QSqlDatabase::drivers().contains("QSQLITE")) {
-    QMessageBox::critical(qmessagebox_parent, "Unable to load database", "This demo needs the SQLITE driver");
-    return QSqlError("Missing SQLITE driver", "", QSqlError::UnknownError);
+    return "Unable to load database: missing SQLITE driver";
   }
 
   // Try to locate the database.
   QString db_filename("stations.db");
   QString db_path = QStandardPaths::locate(QStandardPaths::AppDataLocation, db_filename);
 
+  // Give up if the database is not in one of the "AppData" directories.
   if(db_path.isEmpty()) {
-    QMessageBox::critical(
-      qmessagebox_parent,
-      "Missing database",
-      QString("Could not locate database file '%1' - expected to be in one of the following locations:\n%2").arg(
+    return QString(
+      "Could not locate database file '%1' - expected to be in one of the following locations:\n%2"
+    ).arg(
         db_filename,
         QStandardPaths::standardLocations(QStandardPaths::AppDataLocation).join("\n")
-      )
     );
-    return QSqlError("", "Missing database file", QSqlError::ConnectionError);
   }
 
-  // We located the required DB file, let's use it.
+  // We located the required DB file: let's use it.
   QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
   db.setDatabaseName(db_path);
 
@@ -448,10 +438,12 @@ QSqlError DatabaseManager::initDatabase(
     {"Distances", {"from_id", "to_id", "distance"}},
     {"HaversineDistances", {"from_id", "to_id", "distance"}}
   };
-  if(!validDatabase(db, expected_db)) {
-    QMessageBox::critical(qmessagebox_parent, "Malformed database", "The database does not have the required tables and columns");
-    return QSqlError("", "Wrong layout: missing table or columns", QSqlError::UnknownError);
+  if(!openAndValidate(db, expected_db)) {
+    // Remove the database from the list of connections.
+    QSqlDatabase::removeDatabase(db.connectionName());
+    return "The database in incompatible, it does not have the required tables and columns";
   }
 
-  return QSqlError();
+  // Ok, the database was open!
+  return QString();
 }

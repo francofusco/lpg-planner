@@ -1,12 +1,14 @@
 #include "mainwindow.hpp"
 #include "router_openrouteservice.hpp"
 
+#include <QMessageBox>
 #include <QQuickItem>
 #include <QTimer>
 
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+MainWindow::MainWindow(
+  QWidget *parent
+) : QMainWindow(parent)
 {
   // Styling: set title and icon of the App.
   setWindowTitle("LPG Planner");
@@ -14,18 +16,27 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Check if we can load an API key for OpenRouteSerivce; if so, create a
   // RouterOpenRouteService and use it!
+  // TODO: if the key is empty, create a dialog to allow pasting the key.
   if(!RouterOpenRouteService::key(this).isEmpty()) {
     distance_calculator_ = new RouterOpenRouteService(this);
   }
 
   // Try to initialize the database.
-  database_ = new DatabaseManager(distance_calculator_, this);
-  if(!database_->ok()) {
-    // Ask the application to close as soon as the event-loop starts.
-    qDebug() << "ERROR :(";
+  QString db_error = DatabaseManager::loadDatabase();
+  if(!db_error.isEmpty()) {
+    // Show an error to the user, then "ask" the application to close as soon
+    // as the event-loop starts. Do not bother creating the UI of course.
+    QMessageBox::critical(
+      this,
+      "Database Error",
+      "An error occurred while loading the database: " + db_error
+    );
     QTimer::singleShot(0, this, SLOT(close()));
     return;
   }
+
+  // Instanciate the object used to access the database.
+  database_ = new DatabaseManager(distance_calculator_);
 
   // Create the planner.
   planner_ = new LpgPlanner(distance_calculator_, database_, this);

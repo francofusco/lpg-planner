@@ -22,10 +22,6 @@
  * - Remove all QMessageBox calls and add warning("Message") and
  *     error("Message") signals instead. Related to this, remove the "parent
  *     widget" member.
- * - Refactor the DB initialization strategy. Let the main window call
- *     "initDB()" and figure out what to do upon failure. This class should
- *     instead just call initDB() internally. I'm not sure if I want to even
- *     keep db_ok_ as a member, maybe I can just let the queries fail.
  */
 
 
@@ -33,6 +29,12 @@ class DatabaseManager : public QObject {
   Q_OBJECT
 
 public:
+  /// Load the database from a file.
+  /** @return An empty string if the database was loaded successfully,
+    *   otherwise a string explaining what went wrong.
+    */
+  static QString loadDatabase();
+
   /// Auxiliary class to specify a set of filters when requesting data.
   class Filter {
   public:
@@ -62,9 +64,6 @@ public:
   // NOTE: the following should be removed as the refactoring will remove the router from the DB manager.
   /// Create a new DatabaseManager with a given router.
   explicit DatabaseManager(RouterService* calculator, QObject *parent = nullptr);
-
-  /// Tells if the database was loaded successfully.
-  inline bool ok() const { return db_ok_; }
 
   /// Retrieve a list of stations given their IDs.
   /** @param[in] ids A list of IDs to locate in the database.
@@ -159,21 +158,12 @@ public:
   );
 
 private:
-  bool db_ok_ = false; ///< Flag that tells if the database was loaded successfully.
   QWidget* parent_widget_ = nullptr; ///< @todo Remove this and emit signals with text instead.
   RouterService* router_ = nullptr; ///< @todo Remove this, add functions to retrieve and store distances instead.
   QString DISTANCE_TABLE_NAME = "DISTANCE_TABLE_NAME_TO_BE_FILLED"; ///< @todo Maybe remove this, the "haversineDistance()" table was needed only when a router is not given, but the router will disappear entirely.
 
   /// Helper function that creates a query to select distance records.
   QString distancesQueryString(const QList<int>& ids);
-
-  /// Helper function that can determine if a databse has the expected structure.
-  static bool validDatabase(QSqlDatabase& db, const QMap<QString, QSet<QString>>& expected_tables);
-
-  /// Load the database from a file.
-  /** @todo Remove the "qmessagebox_parent" parameter, pass a string instead.
-    */
-  static QSqlError initDatabase(QWidget* qmessagebox_parent=nullptr);
 };
 
 #endif // DATABASE_MANAGER_HPP
