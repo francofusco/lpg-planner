@@ -48,11 +48,14 @@ QString RouterOpenRouteService::key(QWidget* parent) {
 }
 
 
-RouterOpenRouteService::RouterOpenRouteService(QObject *parent) :
-  RouterService{parent}
+RouterOpenRouteService::RouterOpenRouteService(
+  DatabaseManager* database,
+  QObject *parent
+) : RouterService(database, parent)
 {
   // If the parent is a Widget, store an explicit reference to it so that it
   // can be used as the parent for all QMessageBox dialogs.
+  // TODO: THIS SHOULD BE REMOVED IN FAVOR OF A SIGNAL/SLOT MECHANISM.
   parent_widget_ = qobject_cast<QWidget*>(parent);
 
   // Create a new Network Manager to send HTTPS requests.
@@ -118,17 +121,28 @@ bool RouterOpenRouteService::waitForJson(
 }
 
 
-bool RouterOpenRouteService::calculatePath(
-  double departure_latitude,
-  double departure_longitude,
-  double arrival_latitude,
-  double arrival_longitude,
-  QList<double>& latitudes,
-  QList<double>& longitudes
+bool RouterOpenRouteService::path(
+  const QList<double>& waypoints_latitudes,
+  const QList<double>& waypoints_longitudes,
+  QList<double>& path_latitudes,
+  QList<double>& path_longitudes
 )
 {
   // Exit immediately if we do not have an API key.
   if(api_key_.isEmpty()) {
+    qDebug() << "Missing API key, cannot calculate paths";
+    return false;
+  }
+
+  // The input coordinates must have the same length.
+  if(waypoints_latitudes.size() != waypoints_longitudes.size()) {
+    qDebug() << "Bad inputs passed to RouterOpenRouteService::path()";
+    return false;
+  }
+
+  // For the moment, we don't allow intermediate waypoints...
+  if(waypoints_latitudes.size() != 2) {
+    qDebug() << "Currently, paths with only departure and arrival are supported";
     return false;
   }
 
@@ -138,10 +152,10 @@ bool RouterOpenRouteService::calculatePath(
     QUrl(
       QString("https://api.openrouteservice.org/v2/directions/driving-car?api_key=%1&start=%2,%3&end=%4,%5").arg(
         api_key_,
-        QString::number(departure_longitude, 'f', 6),
-        QString::number(departure_latitude, 'f', 6),
-        QString::number(arrival_longitude, 'f', 6),
-        QString::number(arrival_latitude, 'f', 6)
+        QString::number(waypoints_longitudes[0], 'f', 6),
+        QString::number(waypoints_latitudes[0], 'f', 6),
+        QString::number(waypoints_longitudes[1], 'f', 6),
+        QString::number(waypoints_latitudes[1], 'f', 6)
       )
     )
   );
@@ -166,19 +180,19 @@ bool RouterOpenRouteService::calculatePath(
     return false;
   }
 
-  latitudes.resize(coordinates_array.size());
-  longitudes.resize(coordinates_array.size());
+  path_latitudes.resize(coordinates_array.size());
+  path_longitudes.resize(coordinates_array.size());
 
   for(unsigned int i=0; i<coordinates_array.size(); i++) {
     QJsonArray c = coordinates_array.at(i).toArray();
-    latitudes[i] = c.at(1).toDouble();
-    longitudes[i] = c.at(0).toDouble();
+    path_latitudes[i] = c.at(1).toDouble();
+    path_longitudes[i] = c.at(0).toDouble();
   }
   return true;
 }
 
 
-bool RouterOpenRouteService::calculateDistances(
+bool RouterOpenRouteService::distanceMatrix(
   const QList<double>& latitudes,
   const QList<double>& longitudes,
   QList<QList<double>>& distances
@@ -186,17 +200,26 @@ bool RouterOpenRouteService::calculateDistances(
 {
   // Exit immediately if we do not have an API key.
   if(api_key_.isEmpty()) {
+    qDebug() << "Missing API key, cannot calculate distance matrix";
     return false;
   }
 
-  // Also exit if the lists are incompatible.
+  // The input coordinates must have the same length.
   if(latitudes.size() != longitudes.size()) {
+    qDebug() << "Bad inputs passed to RouterOpenRouteService::distanceMatrix()";
     return false;
   }
 
-  // If there are no coordinates, exit immediately.
+  // No need to do anything unless we have two or more locations!
   if(latitudes.size() == 0) {
     distances.resize(0);
+    return true;
+  }
+
+  // If there is just one point, the distance matrix is trivial.
+  if(latitudes.size() == 1) {
+    distances.resize(1);
+    distances[0] = {};
     return true;
   }
 

@@ -14,13 +14,6 @@ MainWindow::MainWindow(
   setWindowTitle("LPG Planner");
   setWindowIcon(QIcon(":/icons/pump.ico"));
 
-  // Check if we can load an API key for OpenRouteSerivce; if so, create a
-  // RouterOpenRouteService and use it!
-  // TODO: if the key is empty, create a dialog to allow pasting the key.
-  if(!RouterOpenRouteService::key(this).isEmpty()) {
-    distance_calculator_ = new RouterOpenRouteService(this);
-  }
-
   // Try to initialize the database.
   QString db_error = DatabaseManager::loadDatabase();
   if(!db_error.isEmpty()) {
@@ -30,16 +23,26 @@ MainWindow::MainWindow(
       this,
       "Database Error",
       "An error occurred while loading the database: " + db_error
-    );
+      );
     QTimer::singleShot(0, this, SLOT(close()));
     return;
   }
 
   // Instanciate the object used to access the database.
-  database_ = new DatabaseManager(distance_calculator_);
+  database_ = new DatabaseManager(this);
+
+  // Check if we can load an API key for OpenRouteSerivce; if so, create a
+  // RouterOpenRouteService and use it!
+  // TODO: if the key is empty, create a dialog to allow pasting the key.
+  if(!RouterOpenRouteService::key(this).isEmpty()) {
+    router_ = new RouterOpenRouteService(database_, this);
+  }
+  else {
+    router_ = new RouterService(database_, this);
+  }
 
   // Create the planner.
-  planner_ = new LpgPlanner(distance_calculator_, database_, this);
+  planner_ = new LpgPlanner(router_, database_, this);
 
   // Add the router widget.
   planner_widget_ = new LpgPlannerWidget(database_);
@@ -59,7 +62,6 @@ MainWindow::MainWindow(
 
   // Connect the planner and widget.
   QObject::connect(planner_widget_, SIGNAL(solve(LpgProblem)), planner_, SLOT(solve(LpgProblem)));
-  // QObject::connect(planner_, SIGNAL(solved(LpgRoute)), router_, SLOT(showResult()));
   QObject::connect(planner_, SIGNAL(solved(LpgRoute)), planner_widget_, SLOT(showResult(LpgRoute)));
   QObject::connect(planner_, SIGNAL(failed(QString)), planner_widget_, SLOT(showError(QString)));
 

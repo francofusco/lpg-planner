@@ -1,8 +1,6 @@
 #ifndef DATABASE_MANAGER_HPP
 #define DATABASE_MANAGER_HPP
 
-#include "router_service.hpp"
-
 #include <memory>
 
 #include <QMap>
@@ -14,8 +12,6 @@
 #include <QString>
 
 /* TODO LIST:
- * - Refactor the code: the routing service should be using the DB, not the
- *     opposite as it happens right now.
  * - Allow more filters for the queries (mainly, dates).
  * - Allow resetting a filter.
  * - Documentation!
@@ -58,12 +54,8 @@ public:
     // std::unique_ptr<string> min_date = nullptr; // TODO!
   };
 
-  /// Create a new DatabaseManager with no routing capabilities.
-  explicit inline DatabaseManager(QObject *parent = nullptr) : DatabaseManager(nullptr, parent) {}
-
-  // NOTE: the following should be removed as the refactoring will remove the router from the DB manager.
-  /// Create a new DatabaseManager with a given router.
-  explicit DatabaseManager(RouterService* calculator, QObject *parent = nullptr);
+  /// Create a new DatabaseManager.
+  explicit inline DatabaseManager(QObject* parent = nullptr) : QObject(parent) { }
 
   /// Retrieve a list of stations given their IDs.
   /** @param[in] ids A list of IDs to locate in the database.
@@ -139,31 +131,30 @@ public:
     QStringList* addresses
     ) { return findStations(Filter(), ids, prices, latitudes, longitudes, dates, addresses); }
 
-  /// Query the database for pairs of distances.
-  /** Given a list of IDs, this method looks for records in the "Distances"
-    * table whose from_id and to_id appear in the list of input IDs. It then
-    * stores the values in the 'distances' nested-list, so that distances[i][j]
-    * provides the distance between ids[i] and ids[j]. Note that the matrix
-    * needs not to be symmetric.
-    *
-    * @todo Currently, the method will fetch existing records, determine
-    *   missing ones, use the router to calculate the missing distances and
-    *   store the obtained values in the database. However, this should be
-    *   refactored to work in the opposite way: the router should be the one
-    *   asking for existing data and filling the blanks where needed.
+  /// Retrieve all distance pairs for the given IDs.
+  /** @param ids A list of IDs for which pairs are to be fetched. All
+    *   possible combinations will be looked for.
+    * @param[out] distances A map whose elements are in the form
+    *   {(ID1, ID2): d}, where the key is a pair of IDs and d is the distance
+    *   from ID1 to ID2.
+    * @return false if an error occurred, true otherwise.
     */
-  bool distanceMatrix(
+  bool distancePairs(
     const QList<int>& ids,
-    QList<QList<double>>& distances
+    QMap<QPair<int,int>,double>& distances
   );
 
-private:
-  QWidget* parent_widget_ = nullptr; ///< @todo Remove this and emit signals with text instead.
-  RouterService* router_ = nullptr; ///< @todo Remove this, add functions to retrieve and store distances instead.
-  QString DISTANCE_TABLE_NAME = "DISTANCE_TABLE_NAME_TO_BE_FILLED"; ///< @todo Maybe remove this, the "haversineDistance()" table was needed only when a router is not given, but the router will disappear entirely.
-
-  /// Helper function that creates a query to select distance records.
-  QString distancesQueryString(const QList<int>& ids);
+  /// Add or update distance pairs for the given IDs.
+  /** @param distances A map whose elements are in the form
+    *   {(ID1, ID2): d}, where the key is a pair of IDs and d is the distance
+    *   from ID1 to ID2. If an entry for the pair (ID1, ID2) already exists in
+    *   the database, the corresponding distance is updated. If no such entry
+    *   exists, a new one is added.
+    * @return false if an error occurred, true otherwise.
+    */
+  bool insertPairs(
+    const QMap<QPair<int,int>,double>& distances
+  );
 };
 
 #endif // DATABASE_MANAGER_HPP

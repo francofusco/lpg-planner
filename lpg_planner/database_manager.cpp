@@ -8,29 +8,6 @@
 #include <QStandardPaths>
 #include <QStringAlgorithms>
 
-#include <Eigen/Dense>
-
-
-DatabaseManager::DatabaseManager(
-  RouterService* calculator,
-  QObject *parent
-) : QObject(parent)
-{
-  // If the parent is a Widget, store an explicit reference to it so that it
-  // can be used as the parent for all QMessageBox dialogs.
-  parent_widget_ = qobject_cast<QWidget*>(parent);
-
-  // If a distance calculator was given, just use it.
-  if(calculator != nullptr) {
-    router_ = calculator;
-    DISTANCE_TABLE_NAME = "Distances";
-  }
-  else {
-    router_ = new RouterService(this);
-    DISTANCE_TABLE_NAME = "HaversineDistances";
-  }
-}
-
 
 // Helper function: resize the objects, if they are not null. Having a specific
 // function ensures that the operation (which would be valid also on
@@ -103,7 +80,10 @@ bool DatabaseManager::stationsFromIds(
 
   // Compile a query to access all required data, one ID at a time.
   QSqlQuery query;
-  query.prepare("SELECT * FROM Stations WHERE id=?;");
+  if(!query.prepare("SELECT * FROM Stations WHERE id=?;")) {
+    qDebug() << "Failed to prepare select statement";
+    return false;
+  }
 
   // Helper initializer lists.
   auto double_fields = {std::pair{prices, "fuel_price"}, std::pair{latitudes, "latitude"}, std::pair{longitudes, "longitude"}};
@@ -197,10 +177,16 @@ bool DatabaseManager::findStations(
 }
 
 
-QString DatabaseManager::distancesQueryString(
-  const QList<int>& ids
-  )
+bool DatabaseManager::distancePairs(
+  const QList<int>& ids,
+  QMap<QPair<int,int>,double>& distances
+)
 {
+  // No need to do anything unless we have two or more locations!
+  if(ids.size() <= 1) {
+    return true;
+  }
+
   // Convert ints to strings.
   QStringList ids_str;
   ids_str.reserve(ids.size());
@@ -209,167 +195,68 @@ QString DatabaseManager::distancesQueryString(
   }
 
   // Create a query string that can select matching location pairs.
-  return QString(
-    "SELECT * FROM %1"
-    " "
-    "WHERE from_id IN (%2) AND to_id IN (%2)"
-    ).arg(
-      DISTANCE_TABLE_NAME,
-      ids_str.join(",")
-    );
+  QString query_str = QString(
+    "SELECT * FROM Distances WHERE from_id IN (%1) AND to_id IN (%1)"
+  ).arg(
+    ids_str.join(",")
+  );
+  qDebug() << "Fetching records using:" << query_str;
+
+  // Retrieve all existing distance pairs from the database.
+  QSqlQuery query(query_str);
+  if(!query.exec()) {
+    qDebug() << "Failed to execute query";
+    return false;
+  }
+
+  // Copy fetched records into the map.
+  while(query.next()) {
+    distances[{
+      query.value("from_id").toInt(),
+      query.value("to_id").toInt()
+    }] = query.value("distance").toDouble();
+  }
+  return true;
 }
 
 
-bool DatabaseManager::distanceMatrix(
-  const QList<int>& ids,
-  QList<QList<double>>& distances
-  )
+bool DatabaseManager::insertPairs(
+  const QMap<QPair<int,int>,double>& distances
+)
 {
-  // No need to do anything unless we have two or more locations!
-  if(ids.size() == 0) {
-    distances.resize(0);
-    return true;
-  }
+  // Create a query that can insert distance pairs if they do not exist, or
+  // update them if they exist.
+  QString query_str = QString(
+    "INSERT INTO Distances (from_id, to_id, distance)"
+    " "
+    "VALUES (?, ?, ?)"
+    " "
+    "ON CONFLICT(from_id, to_id)"
+    " "
+    "DO UPDATE SET distance = excluded.distance;"
+  );
+  qDebug() << "Preparing query:" << query_str;
 
-  if(ids.size() == 1) {
-    distances.resize(1);
-    distances[0] = {};
-    return true;
-  }
-
-  // Resize the distance matrix, so it is ready for use.
-  distances.resize(ids.size());
-  for(unsigned int i=0; i<ids.size(); i++) {
-    distances[i].resize(ids.size());
-    distances[i][i] = 0;
-    for(unsigned int j=0; j<ids.size(); j++) {
-      distances[i][j] = i==j ? 0.0 : -1.0;
-    }
-  }
-
-  // Retrieve all existing distance pairs from the database.
+  // Prepare the query for execution.
   QSqlQuery query;
-  QString query_str = distancesQueryString(ids);
-  qDebug() << "Fetching records using:" << query_str;
-  if(!query.exec(query_str)) {
-    QMessageBox::critical(
-      parent_widget_,
-      "Failed to query database",
-      "While calling DatabaseManager::distanceMatrix(): failed to execute query."
-    );
+  if(!query.prepare(query_str)) {
+    qDebug() << "Failed to prepare query";
     return false;
   }
 
-  // Create an inverse map from IDs to indices.
-  QMap<int,int> idx;
-  for(unsigned int i=0; i<ids.size(); i++) {
-    idx[ids[i]] = i;
-  }
-
-  // Fill the matrix with existig distances.
-  while(query.next()) {
-    distances[idx[query.value("from_id").toInt()]][idx[query.value("to_id").toInt()]] = query.value("distance").toDouble();
-  }
-
-  // Respectively, list of missing distances and list of ids appearing in at
-  // least one missing pair.
-  QList<QPair<int, int>> missing_pairs;
-  QSet<int> missing_set;
-  for(unsigned int i=0; i<ids.size(); i++) {
-    for(unsigned int j=0; j<ids.size(); j++) {
-      if(distances[i][j] < 0) {
-        missing_pairs.append({i, j});
-        missing_set.insert(i);
-        missing_set.insert(j);
-      }
-    }
-  }
-
-  // If we found every entry, we can leave.
-  if(missing_set.size() == 0) {
-    qDebug() << "Distances were all cached in the database";
-    return true;
-  }
-
-  qDebug() << "Missing distances for" << missing_pairs.size() << "pairs";
-
-  // Transform the set into a list and obtain the inverse map.
-  QList<int> missing_list = missing_set.values();
-  QList<int> missing_ids(missing_list.size());
-  idx.clear();
-  for(unsigned int i=0; i<missing_list.size(); i++) {
-    idx[missing_list[i]] = i;
-    missing_ids[i] = ids[missing_list[i]];
-  }
-
-  // Obtain the coordinates of the missing IDs.
-  QList<double> latitudes, longitudes;
-  latitudes.reserve(missing_ids.size());
-  longitudes.reserve(missing_ids.size());
-  query.prepare("SELECT latitude, longitude FROM Stations WHERE id = ?");
-  for(unsigned int i=0; i<missing_ids.size(); i++) {
-    query.addBindValue(missing_ids[i]);
-
+  // For each distance pair, run the query.
+  for(auto [ids, distance] : distances.asKeyValueRange()) {
+    query.addBindValue(ids.first);
+    query.addBindValue(ids.second);
+    query.addBindValue(distance);
     if(!query.exec()) {
-      QMessageBox::critical(
-        parent_widget_,
-        "Failed to query database",
-        "While calling DatabaseManager::distanceMatrix(): failed to retrieve record."
-        );
-      return false;
-    }
-
-    if(!query.next()) {
-      QMessageBox::critical(
-        parent_widget_,
-        "Failed to query database",
-        "While calling DatabaseManager::distanceMatrix(): failed to retrieve record."
-        );
-      return false;
-      continue;
-    }
-    latitudes.append(query.value("latitude").toDouble());
-    longitudes.append(query.value("longitude").toDouble());
-  }
-
-  // Calculate the distance matrix for the required stations.
-  QList<QList<double>> missing_distances;
-  if(!router_->calculateDistances(latitudes, longitudes, missing_distances)) {
-    QMessageBox::critical(
-      parent_widget_,
-      "Failed to calculate distances",
-      "While calling DatabaseManager::distanceMatrix(): call to RouterService::calculateDistances() failed."
-    );
-    return false;
-  }
-
-  // Now that we have the missing distances, we can fill the matrix and cache
-  // the values into the database!
-  if(!query.prepare("INSERT INTO " + DISTANCE_TABLE_NAME + "(from_id, to_id, distance) values(?, ?, ?)")) {
-    QMessageBox::warning(
-      parent_widget_,
-      "Internal Error",
-      "While calling DatabaseManager::distanceMatrix(): failed to prepare 'INSERT' statement."
-    );
-    return false;
-  }
-
-  // Save missing values in the database.
-  for(const auto& p : missing_pairs) {
-    distances[p.first][p.second] = missing_distances[idx[p.first]][idx[p.second]];
-    query.addBindValue(ids[p.first]);
-    query.addBindValue(ids[p.second]);
-    query.addBindValue(distances[p.first][p.second]);
-    if(!query.exec()) {
-      QMessageBox::critical(
-        parent_widget_,
-        "Failed to query database",
-        "While calling DatabaseManager::distanceMatrix(): failed to insert new record."
-        );
+      // Exit on failure.
+      qDebug() << "Failed to run query with parameters:" << ids.first << ids.second << distance;
       return false;
     }
   }
 
+  // All pairs were inserted!
   return true;
 }
 
@@ -435,8 +322,7 @@ QString DatabaseManager::loadDatabase() {
   // Try to open the database and check that there are the required tables.
   QMap<QString, QSet<QString>> expected_db{
     {"Stations", {"id", "longitude", "latitude", "fuel_price"}},
-    {"Distances", {"from_id", "to_id", "distance"}},
-    {"HaversineDistances", {"from_id", "to_id", "distance"}}
+    {"Distances", {"from_id", "to_id", "distance"}}
   };
   if(!openAndValidate(db, expected_db)) {
     // Remove the database from the list of connections.

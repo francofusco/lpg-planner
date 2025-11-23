@@ -42,6 +42,10 @@
  *     bound to be infeasible. Otherwise, just treat the first stop as any stop
  *     and modify the initial conditions to subtract the fuel needed to reach
  *     it from the initial tank level, then run the simplex "as is".
+ * - On second thought, infeasibility of a LPP is trivially verifiable by
+ *     checking if distance[i][i+1] >= efficiency * tank_capacity. Yeah, this
+ *     cannot deal with the minimum refill constraint, but it should prune out
+ *     many solutions when a long roadtrip is to be considered!
  */
 
 

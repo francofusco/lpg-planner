@@ -17,6 +17,10 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+/* TODO LIST:
+ * - Show multiple solutions based on different "metrics"?
+ */
+
 
 /// Widget that allows planning a roadtrip.
 class LpgPlannerWidget : public QWidget {
