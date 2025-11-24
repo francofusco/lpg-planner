@@ -1,12 +1,6 @@
 #include "lpg_planner_widget.hpp"
 
-#include <Eigen/Dense>
-
-#include <QtMath>
 #include <QMessageBox>
-#include <QSqlError>
-#include <QSqlQuery>
-#include <QSqlRecord>
 
 
 LpgPlannerWidget::LpgPlannerWidget(
@@ -146,7 +140,7 @@ void LpgPlannerWidget::showResult(LpgRoute solution) {
 
   QList<int> ids(solution.stops.size());
   for(unsigned int i=0; i<solution.stops.size(); i++) {
-    ids[i] = solution.stops[i].idx;
+    ids[i] = solution.stops[i].id;
   }
 
   QList<double> prices;

@@ -517,7 +517,7 @@ void LpgPlanner::solve(
   QList<bool> stop_here;
   auto s = routes[0].stops.begin();
   for(unsigned int i=0; i<stations.size(); i++) {
-    if(s->idx == stations[i]) {
+    if(s->id == stations[i]) {
       stop_here.append(true);
       qDebug() << "Stop at" << i;
       s++;

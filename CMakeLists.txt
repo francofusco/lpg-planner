@@ -28,8 +28,8 @@ qt_add_executable(lpg_planner
     lpg_planner/lpg_route.cpp
     lpg_planner/lpg_stop.hpp
     lpg_planner/main.cpp
-    lpg_planner/mainwindow.hpp
-    lpg_planner/mainwindow.cpp
+    lpg_planner/main_window.hpp
+    lpg_planner/main_window.cpp
     lpg_planner/map.qml
     lpg_planner/math_utilities.hpp
     lpg_planner/math_utilities.hxx

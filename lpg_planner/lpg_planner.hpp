@@ -6,47 +6,11 @@
 #include "lpg_route.hpp"
 #include "router_service.hpp"
 
-#include <QGeoCoordinate>
+#include <QList>
 #include <QObject>
-#include <QWidget>
-
-/* TODO LIST:
- * - Refactor the code: "split" this object in two components, the first one
- *     will take care of finding stations along a route, the ohter will solve
- *     the actual optimization problem.
- * - To find stations, the code currently checks which ones are the cheapest
- *     along the route. However, there is a better way: check the price first
- *     and break ties according to the distance from the route. Due to how
- *     minCoeff() works, right now ties are solved in order of appearance.
- * - Add the possibility to refine the choice in fueling stations. The reason
- *     being that some stations - while being cheap and near to the route - may
- *     require long detours. A trivial example is the case of stations on the
- *     highway but in the opposite way, requiring to exit the highway, do a
- *     180°, reach the station, refuel, keep driving until the next exit and
- *     then do yet another 180°. This is a difficult case to detect
- *     programmatically, and I would prefer to let the process work as: the
- *     algorithm first finds a bunch of stations and shows them to the user,
- *     who can then "veto" on some stops; the algorithm would then propose new
- *     alternatives, with the process repeating until necessary. It could also
- *     be interesting to allow permanently ignoring a station, by setting some
- *     property into the database.
- * - It would be nice to be able to tho show the final route, including detours
- *     for fueling. Not sure if caching routes would be a good idea, but why
- *     not? Maybe adding a time-stamp and refreshing only every so often.
- * - Change the problem so that we start from the location and not necessarily
- *     from the first station. Maybe add some sort of parameter like "start
- *     from LPG station". Concerning feasibility, it should be easy: we know
- *     the distance from the starting point to the first LPG station, so we can
- *     easiliy calculate the minimum amount of fuel to at least reach this
- *     station. If the initial tank level is below this, then the problem is
- *     bound to be infeasible. Otherwise, just treat the first stop as any stop
- *     and modify the initial conditions to subtract the fuel needed to reach
- *     it from the initial tank level, then run the simplex "as is".
- * - On second thought, infeasibility of a LPP is trivially verifiable by
- *     checking if distance[i][i+1] >= efficiency * tank_capacity. Yeah, this
- *     cannot deal with the minimum refill constraint, but it should prune out
- *     many solutions when a long roadtrip is to be considered!
- */
+#include <QString>
+#include <QVariantList>
+#include <QVariantMap>
 
 
 /// Class that can find optimal LPG stops along a road-trip.
@@ -143,4 +107,4 @@ signals:
   void failed(const QString& why);
 };
 
-#endif // LPG_PLANNER_H
+#endif // LPG_PLANNER_HPP

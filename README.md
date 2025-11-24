@@ -93,18 +93,10 @@ with one nested element per station. Note that:
 A helper script named `mylpg-pois-to-json.py` is also included, which allows to parse a list of points of interest generated using [myLPG.eu](https://www.mylpg.eu/lpg-station-route-planner/). To use the script, follow the procedure detailed in the web page, click on "Print Results" and save to a plain text file. Use the new file as input for the python script. **Please, do not abuse this to scrape data from the webpage**.
 
 
-## Roadmap
-
-- Nicer-looking UI - especially to get rid of the spinboxes for the coordinates and to present data better in the table, but also, *e.g.*, nicer icons for the stops
-- Split planning in two steps: selection of the stations + actual optimization
-- Allow to set filters on the stations (price, date of last price update, "manual exclusion")
-- Add some progress bar for larger problems and allow interrupting the planner
-- Display the final route, including the detours for LPG!
-- Interactive map: allow zooming and panning
-- Allow managing the API key for ORS and the database directly from the app
-
-
 ## Credits
 
 Here is a list of resources found on the web and used in this project, with corresponding attributions:
-- The gas station icon was derived from [Gas station icons created by nawicon - Flaticon](https://www.flaticon.com/free-icons/gas-station)
+- The project is based on [Qt6 for Open Source Development](https://www.qt.io/download-open-source).
+- To show data on a map, we use [OpenStreetMap](openstreetmap.org/copyright) - via the OSM Qt plugin.
+- For route calculations, we use: [© openrouteservice.org by HeiGIT | Map data © OpenStreetMap contributors](https://openrouteservice.org/)
+- The gas station icons were derived from [Gas station icons created by nawicon - Flaticon](https://www.flaticon.com/free-icons/gas-station)

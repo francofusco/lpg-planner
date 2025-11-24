@@ -1,12 +1,16 @@
-#ifndef ROUTER_OPENROUTESERVICE_H
-#define ROUTER_OPENROUTESERVICE_H
+#ifndef ROUTER_OPENROUTESERVICE_HPP
+#define ROUTER_OPENROUTESERVICE_HPP
 
 #include "router_service.hpp"
 #include "database_manager.hpp"
 
+#include <QJsonDocument>
+#include <QList>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QObject>
+#include <QString>
+#include <QWidget>
 
 
 class RouterOpenRouteService : public RouterService {
@@ -44,4 +48,4 @@ private:
   bool waitForJson(QNetworkReply* reply, QJsonDocument& json);
 };
 
-#endif // ROUTER_OPENROUTESERVICE_H
+#endif // ROUTER_OPENROUTESERVICE_HPP

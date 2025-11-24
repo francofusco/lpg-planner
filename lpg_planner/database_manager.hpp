@@ -3,22 +3,12 @@
 
 #include <memory>
 
+#include <QList>
 #include <QMap>
 #include <QObject>
-#include <QSet>
-#include <QSqlDatabase>
-#include <QSqlError>
-#include <QSqlTableModel>
+#include <QSqlQuery>
 #include <QString>
-
-/* TODO LIST:
- * - Allow more filters for the queries (mainly, dates).
- * - Allow resetting a filter.
- * - Documentation!
- * - Remove all QMessageBox calls and add warning("Message") and
- *     error("Message") signals instead. Related to this, remove the "parent
- *     widget" member.
- */
+#include <QStringList>
 
 
 class DatabaseManager : public QObject {

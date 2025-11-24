@@ -3,10 +3,8 @@
 
 #include "database_manager.hpp"
 
-#include <QMap>
+#include <QList>
 #include <QObject>
-#include <QPair>
-#include <QString>
 
 
 /// Base class for calculating distances between GPS coordinates.
@@ -65,4 +63,4 @@ private:
   DatabaseManager* database_ = nullptr;
 };
 
-#endif // DISTANCE_CALCULATOR_HPP
+#endif // ROUTER_SERVICE_HPP

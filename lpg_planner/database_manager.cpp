@@ -1,12 +1,7 @@
 #include "database_manager.hpp"
 
-#include <QDir>
-#include <QGeoCoordinate>
-#include <QMessageBox>
-#include <QSqlQuery>
 #include <QSqlRecord>
 #include <QStandardPaths>
-#include <QStringAlgorithms>
 
 
 // Helper function: resize the objects, if they are not null. Having a specific

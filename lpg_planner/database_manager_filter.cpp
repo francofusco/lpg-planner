@@ -1,8 +1,5 @@
 #include "database_manager.hpp"
 
-#include <QSqlQuery>
-#include <QSqlRecord>
-
 
 QSqlQuery DatabaseManager::Filter::compile() const
 {

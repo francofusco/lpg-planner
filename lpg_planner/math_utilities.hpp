@@ -1,8 +1,8 @@
-#ifndef MATH_UTILITIES_H
-#define MATH_UTILITIES_H
-
+#ifndef MATH_UTILITIES_HPP
+#define MATH_UTILITIES_HPP
 
 #include <Eigen/Dense>
+
 
 namespace math_utilities {
 
@@ -108,8 +108,8 @@ void sortBy(
 );
 
 
-} // namespace eigen_utilities
+} // namespace math_utilities
 
-#endif // MATH_UTILITIES_H
+#endif // MATH_UTILITIES_HPP
 
 #include "math_utilities.hxx"
