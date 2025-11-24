@@ -93,6 +93,11 @@ with one nested element per station. Note that:
 A helper script named `mylpg-pois-to-json.py` is also included, which allows to parse a list of points of interest generated using [myLPG.eu](https://www.mylpg.eu/lpg-station-route-planner/). To use the script, follow the procedure detailed in the web page, click on "Print Results" and save to a plain text file. Use the new file as input for the python script. **Please, do not abuse this to scrape data from the webpage**.
 
 
+## Roadmap
+
+A list of features to be implemented is tracked on GitHub, as [issues labelled as "todo"](https://github.com/francofusco/lpg-planner/issues?q=state%3Aopen%20label%3Atodo).
+
+
 ## Credits
 
 Here is a list of resources found on the web and used in this project, with corresponding attributions:
