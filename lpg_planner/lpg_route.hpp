@@ -12,7 +12,7 @@ struct LpgRoute {
   double cost = 0.0; ///< Total cost of the route.
   QList<LpgStop> stops; ///< Stops along the route.
 
-  // Default constructor needed by Qt's metatype system.
+  /// Default constructor, needed by Qt's metatype system.
   LpgRoute() = default;
 
   /// Create a route, given the cost and the stops.

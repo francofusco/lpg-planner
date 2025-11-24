@@ -1,32 +1,38 @@
-#ifndef ROUTER_OPENROUTESERVICE_H
-#define ROUTER_OPENROUTESERVICE_H
+#ifndef ROUTER_OPENROUTESERVICE_HPP
+#define ROUTER_OPENROUTESERVICE_HPP
 
 #include "router_service.hpp"
+#include "database_manager.hpp"
 
+#include <QJsonDocument>
+#include <QList>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QObject>
+#include <QString>
+#include <QWidget>
 
 
 class RouterOpenRouteService : public RouterService {
 public:
-  explicit RouterOpenRouteService(QObject *parent = nullptr);
+  explicit RouterOpenRouteService(
+    DatabaseManager* database,
+    QObject *parent = nullptr
+  );
 
   /// Calculate the path between two locations.
-  virtual bool calculatePath(
-    double departure_latitude,
-    double departure_longitude,
-    double arrival_latitude,
-    double arrival_longitude,
-    QList<double>& latitudes,
-    QList<double>& longitudes
+  virtual bool path(
+    const QList<double>& waypoints_latitudes,
+    const QList<double>& waypoints_longitudes,
+    QList<double>& path_latitudes,
+    QList<double>& path_longitudes
   ) override;
 
   /// Calculate the distance between a set of coordinates.
   /** Calculate driving distances between GPS coordinates by sending HTTPS
    *  requests to OpenRouteService.
    */
-  virtual bool calculateDistances(
+  virtual bool distanceMatrix(
     const QList<double>& latitudes,
     const QList<double>& longitudes,
     QList<QList<double>>& distances
@@ -35,11 +41,11 @@ public:
   static QString key(QWidget* parent=nullptr);
 
 private:
-  QWidget* parent_widget_ = nullptr; ///< Parent of this object, as a QWidget - if it is a QWidget!
+  QWidget* parent_widget_ = nullptr; ///< @todo remove it and use a signal/slot
   QString api_key_; ///< API key used to send requests to OpenRouteService.
   QNetworkAccessManager* network_manager_ = nullptr; ///< Used to send HTTPS requests.
 
   bool waitForJson(QNetworkReply* reply, QJsonDocument& json);
 };
 
-#endif // ROUTER_OPENROUTESERVICE_H
+#endif // ROUTER_OPENROUTESERVICE_HPP

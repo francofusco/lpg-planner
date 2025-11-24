@@ -1,12 +1,12 @@
-#include "mainwindow.hpp"
+#include "main_window.hpp"
 #include "lpg_problem.hpp"
 #include "lpg_route.hpp"
 #include "lpg_stop.hpp"
 
 #include <QApplication>
 
-int main(int argc, char *argv[])
-{
+
+int main(int argc, char *argv[]) {
   qRegisterMetaType<LpgProblem>();
   qRegisterMetaType<LpgStop>();
   qRegisterMetaType<LpgRoute>();

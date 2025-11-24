@@ -1,18 +1,16 @@
-#ifndef LPG_PLANNER_WIDGET_H
-#define LPG_PLANNER_WIDGET_H
+#ifndef LPG_PLANNER_WIDGET_HPP
+#define LPG_PLANNER_WIDGET_HPP
 
+#include "database_manager.hpp"
 #include "lpg_problem.hpp"
 #include "lpg_route.hpp"
-#include "database_manager.hpp"
 
-#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QGridLayout>
-#include <QHBoxLayout>
 #include <QLabel>
-#include <QListWidget>
 #include <QPushButton>
-#include <QSqlRelationalTableModel>
+#include <QSpinBox>
+#include <QString>
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -68,4 +66,4 @@ public slots:
   void showError(const QString& error);
 };
 
-#endif // LPG_PLANNER_WIDGET_H
+#endif // LPG_PLANNER_WIDGET_HPP

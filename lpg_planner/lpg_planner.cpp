@@ -124,11 +124,9 @@ void LpgPlanner::solve(
 
   // Calculate the path from departure to arrival.
   QList<double> path_latitudes_qlist, path_longitudes_qlist;
-  bool ok = router_->calculatePath(
-    problem.departure_latitude,
-    problem.departure_longitude,
-    problem.arrival_latitude,
-    problem.arrival_longitude,
+  bool ok = router_->path(
+    {problem.departure_latitude, problem.arrival_latitude},
+    {problem.departure_longitude, problem.arrival_longitude},
     path_latitudes_qlist,
     path_longitudes_qlist
   );
@@ -174,12 +172,14 @@ void LpgPlanner::solve(
 
   QList<int> stations_ids;
   QList<double> stations_prices, stations_latitudes, stations_longitudes;
-  ok = database_->stations(
+  ok = database_->findStations(
     db_filter,
-    stations_ids,
-    stations_prices,
-    stations_latitudes,
-    stations_longitudes
+    &stations_ids,
+    &stations_prices,
+    &stations_latitudes,
+    &stations_longitudes,
+    nullptr,
+    nullptr
   );
 
   if(!ok) {
@@ -366,12 +366,14 @@ void LpgPlanner::solve(
 
   QList<int> departure_stations_ids;
   QList<double> departure_stations_prices, departure_stations_latitudes, departure_stations_longitudes;
-  ok = database_->stations(
+  ok = database_->findStations(
     db_filter,
-    departure_stations_ids,
-    departure_stations_prices,
-    departure_stations_latitudes,
-    departure_stations_longitudes
+    &departure_stations_ids,
+    &departure_stations_prices,
+    &departure_stations_latitudes,
+    &departure_stations_longitudes,
+    nullptr,
+    nullptr
   );
 
   if(ok && departure_stations_ids.size() > 0) {
@@ -410,12 +412,14 @@ void LpgPlanner::solve(
 
   QList<int> arrival_stations_ids;
   QList<double> arrival_stations_prices, arrival_stations_latitudes, arrival_stations_longitudes;
-  ok = database_->stations(
+  ok = database_->findStations(
     db_filter,
-    arrival_stations_ids,
-    arrival_stations_prices,
-    arrival_stations_latitudes,
-    arrival_stations_longitudes
+    &arrival_stations_ids,
+    &arrival_stations_prices,
+    &arrival_stations_latitudes,
+    &arrival_stations_longitudes,
+    nullptr,
+    nullptr
   );
 
   if(ok && arrival_stations_ids.size() > 0) {
@@ -453,7 +457,7 @@ void LpgPlanner::solve(
   Eigen::Map<Eigen::VectorXi>(stations_as_list.data(), stations.size()) = stations;
   QList<QList<double>> distance_matrix;
   qDebug() << "Requesting distance matrix for" << stations_as_list.size() << "stations";
-  if(!database_->distanceMatrix(stations_as_list, distance_matrix)) {
+  if(!router_->distanceMatrix(stations_as_list, distance_matrix)) {
     emit failed("Failed to obtain distance matrix");
     return;
   }
@@ -513,7 +517,7 @@ void LpgPlanner::solve(
   QList<bool> stop_here;
   auto s = routes[0].stops.begin();
   for(unsigned int i=0; i<stations.size(); i++) {
-    if(s->idx == stations[i]) {
+    if(s->id == stations[i]) {
       stop_here.append(true);
       qDebug() << "Stop at" << i;
       s++;
@@ -527,20 +531,37 @@ void LpgPlanner::solve(
   qDebug() << "Sending solution to other components";
   emit solved(routes[0]);
 
+  // // Last step: check how much we are saving!
+  // double cost = 0;
+  // double tank = 0;
+
+  // for(unsigned int i=0; i<stations.size()-1; i++) {
+  //   double fuel_to_next = distance_matrix[i][i+1] / problem.fuel_efficiency;
+  //   if(fuel_to_next > tank) {
+  //     // Refill!
+  //     cost += (problem.tank_capacity - tank) * prices(i);
+  //     tank = problem.tank_capacity;
+  //   }
+  //   tank -= fuel_to_next;
+  // }
+  // cost += (problem.tank_capacity - tank) * prices(prices.size()-1);
+
   // Last step: check how much we are saving!
   double cost = 0;
   double tank = 0;
 
-  for(unsigned int i=0; i<stations.size()-1; i++) {
-    double fuel_to_next = distance_matrix[i][i+1] / problem.fuel_efficiency;
+  for(unsigned int i=0; i<stations_on_path.size()-1; i++) {
+    double distance = path_arclength[closest_point_on_path[i]] - (i==0 ? 0.0 : path_arclength[closest_point_on_path[i-1]]);
+    double fuel_to_next = distance / problem.fuel_efficiency;
     if(fuel_to_next > tank) {
       // Refill!
-      cost += (problem.tank_capacity - tank) * prices(i);
+      cost += (problem.tank_capacity - tank) * prices_on_path(i);
       tank = problem.tank_capacity;
     }
     tank -= fuel_to_next;
   }
-  cost += (problem.tank_capacity - tank) * prices(prices.size()-1);
+  cost += (problem.tank_capacity - tank) * prices_on_path(prices_on_path.size()-1);
+
   qDebug() << "Optimal cost:" << routes[0].cost;
   qDebug() << "Unoptimized:" << cost;
 }

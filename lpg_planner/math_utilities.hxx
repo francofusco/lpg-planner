@@ -146,4 +146,4 @@ void sortBy(
   }
 }
 
-} // namespace eigen_utilities
+} // namespace math_utilities
