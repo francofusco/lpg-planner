@@ -1,6 +1,7 @@
 #include "main_window.hpp"
 #include "router_openrouteservice.hpp"
 
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QQuickItem>
 #include <QTimer>
@@ -31,14 +32,33 @@ MainWindow::MainWindow(
   // Instanciate the object used to access the database.
   database_ = new DatabaseManager(this);
 
-  // Check if we can load an API key for OpenRouteSerivce; if so, create a
-  // RouterOpenRouteService and use it!
-  // TODO: if the key is empty, create a dialog to allow pasting the key.
-  if(!RouterOpenRouteService::key(this).isEmpty()) {
-    router_ = new RouterOpenRouteService(database_, this);
+  // Check if we can load an API key for OpenRouteService. If not, ask the user
+  // to provide such key.
+  if(RouterOpenRouteService::key().isEmpty()) {
+    RouterOpenRouteService::manageKey(this);
+  }
+
+  // If after asking for a key, said key is still empty, just start the
+  // software in "demo mode" using haversine distances. Otherwise, use ORS.
+  if(RouterOpenRouteService::key().isEmpty()) {
+    QMessageBox::information(
+      this,
+      "Demo Mode",
+      "By not providing an API key for OpenRouteService, the app\n"
+      "will start in 'demo mode': paths will be straight lines and\n"
+      "therefore the results will not be accurate!\n"
+      "\n"
+      "Furthermore, please note that as of right now switching\n"
+      "between demo mode and regular mode will likely invalidate\n"
+      "the distance records in the local database. Before\n"
+      "activating regular mode, please makes sure to clear the\n"
+      "contents of the 'Distances' table (this will be done\n"
+      "automatically in future versions)."
+    );
+    router_ = new RouterService(database_, this);
   }
   else {
-    router_ = new RouterService(database_, this);
+    router_ = new RouterOpenRouteService(database_, this);
   }
 
   // Create the planner.
@@ -95,4 +115,32 @@ MainWindow::MainWindow(
     );
   };
   QObject::connect(planner_, &LpgPlanner::stationsUpdated, map_root_object, stations_callback);
+
+  // Create a menu bar and add a bunch of actions to it.
+  QMenu* edit_menu = menuBar()->addMenu("&Edit");
+
+  // Add an action to edit the API key for ORS.
+  edit_menu->addAction(
+    "Edit API key for OpenRouteService",
+    this,
+    [&](){
+      // Allow the user to edit the key.
+      RouterOpenRouteService::manageKey(this);
+      // If we are actually using ORS, make sure the new key is used!
+      RouterOpenRouteService* ors = dynamic_cast<RouterOpenRouteService*>(router_);
+      if(ors != nullptr) {
+        ors->reloadKey();
+      }
+      else {
+        QMessageBox::information(
+          this,
+          "Demo Mode",
+          "The API key for ORS has been changed, but the app was in\n"
+          "'demo mode'. To actually use OpenRouteService, please close\n"
+          "the app, clear the 'Distances' table in the database and\n"
+          "restart the application."
+        );
+      }
+    }
+  );
 }

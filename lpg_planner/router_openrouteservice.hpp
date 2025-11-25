@@ -30,17 +30,33 @@ public:
 
   /// Calculate the distance between a set of coordinates.
   /** Calculate driving distances between GPS coordinates by sending HTTPS
-   *  requests to OpenRouteService.
-   */
+    * requests to OpenRouteService.
+    */
   virtual bool distanceMatrix(
     const QList<double>& latitudes,
     const QList<double>& longitudes,
     QList<QList<double>>& distances
   ) override;
 
-  static QString key(QWidget* parent=nullptr);
+  /// Read again the API key (usually in response to external edits).
+  void reloadKey();
+
+  /// Fetch and return the API key for OpenRouteService.
+  /** @return The key, if successfully read from a file. If any issues occurred
+    *   (such as missing or corrupt file) return an empty string.
+    */
+  static QString key();
+
+  /// Allows to update the API key for OpenRouteService.
+  /** Creates a QInputDialog that allows the user to add or modify the API key
+    * to be used when sending requests to OpenRouteService.
+    * @param parent Widget to be used to setup a QInputDialog to ask the user
+    *   for a string (the API key).
+    */
+  static void manageKey(QWidget* parent);
 
 private:
+  static const QString API_KEY_FILENAME; ///< Name of the file where to locate the API key.
   QWidget* parent_widget_ = nullptr; ///< @todo remove it and use a signal/slot
   QString api_key_; ///< API key used to send requests to OpenRouteService.
   QNetworkAccessManager* network_manager_ = nullptr; ///< Used to send HTTPS requests.

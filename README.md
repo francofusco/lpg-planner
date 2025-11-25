@@ -53,13 +53,8 @@ cmake --build .
 ## First-time Setup
 
 After the app has been built, you still need to complete two steps:
-1. Obtain an API key for OpenRouteService;
 1. Initialize the local LPG database.
-
-
-### OpenRouteService API key
-
-Go to [OpenRouteService's website](https://openrouteservice.org/) and create an account. This will allow you to obtain an API key that you can use to perform distance queries. Note that with the free tier, the number of requests you can perform is technically limited, but unless you try to perform hundreds of plans every day, it should not be an issue. Once you created the account, copy the API key - it will be some long alpha-numeric string - and paste it *as the first line* in a plain text file named `open_route_service_api_key` (no extension! if there is one, just delete it). That's it!
+1. Obtain an API key for OpenRouteService;
 
 
 ### Setting up the Database
@@ -91,6 +86,11 @@ with one nested element per station. Note that:
 - The date must be in `dd/mm/yyyy` format.
 
 A helper script named `mylpg-pois-to-json.py` is also included, which allows to parse a list of points of interest generated using [myLPG.eu](https://www.mylpg.eu/lpg-station-route-planner/). To use the script, follow the procedure detailed in the web page, click on "Print Results" and save to a plain text file. Use the new file as input for the python script. **Please, do not abuse this to scrape data from the webpage**.
+
+
+### OpenRouteService API key
+
+Go to [OpenRouteService's website](https://openrouteservice.org/) and create an account. This will allow you to obtain an API key that you can use to perform distance queries. Note that with the free tier, the number of requests you can perform is technically limited, but unless you try to calculate hundreds of plans every day, it should not be an issue. Once you created the account, copy the API key - it will be some long alpha-numeric string - and start the app. A dialog should pop up, asking to provide said API key. The provided API key will be stored on your local file system, in a plain text file named `open_route_service_api_key` (no extension!) inside the directory `C:/Users/<your-name>/AppData/Roaming/lpg_planner`. If you wish to "uninstall" this app, make sure to delete said file manually - since right now "uninstalling" the app just means... deleting all files :sweat_smile:
 
 
 ## Roadmap
