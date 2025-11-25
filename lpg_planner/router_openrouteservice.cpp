@@ -1,7 +1,9 @@
 #include "router_openrouteservice.hpp"
 
+#include <QDir>
 #include <QEventLoop>
 #include <QFile>
+#include <QInputDialog>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMessageBox>
@@ -9,41 +11,95 @@
 #include <QStandardPaths>
 
 
-QString RouterOpenRouteService::key(QWidget* parent) {
-  QString api_key;
+const QString RouterOpenRouteService::API_KEY_FILENAME = "open_route_service_api_key";
 
-  // Try to load the API key from a file.
-  QString api_key_filename("open_route_service_api_key");
-  QString api_key_path = QStandardPaths::locate(QStandardPaths::AppDataLocation, api_key_filename);
+
+QString RouterOpenRouteService::key() {
+  // Locate the file where the API key is expected to be. Return an empty key
+  // if the file is missing.
+  QString api_key_path = QStandardPaths::locate(QStandardPaths::AppDataLocation, API_KEY_FILENAME);
   if(api_key_path.isEmpty()) {
-    QMessageBox::warning(
-      parent,
-      "Missing API key file",
-      QString("Could not retrieve API key for OpenRouteService from file '%1' - expected to be in one of the following locations:\n%2").arg(
-        api_key_filename,
-        QStandardPaths::standardLocations(QStandardPaths::AppDataLocation).join("\n")
-      )
+    qDebug() << QString(
+      "Could not retrieve API key for OpenRouteService from file '%1' - expected to be in one of the following locations:\n%2"
+    ).arg(
+      API_KEY_FILENAME,
+      QStandardPaths::standardLocations(QStandardPaths::AppDataLocation).join("\n")
     );
-  }
-  else {
-    QFile api_file(api_key_path);
-    if(!api_file.open(QIODevice::ReadOnly)) {
-      QMessageBox::critical(parent, "Failed reading API key", "Could not open file " + api_key_path);
-    }
-    else {
-      QTextStream in(&api_file);
-      if(in.atEnd()) {
-        QMessageBox::critical(parent, "Failed reading API key", "File " + api_key_path + " appears to be empty.");
-      }
-      else {
-        api_key = in.readLine();
-      }
-      api_file.close();
-    }
+    return "";
   }
 
-  qDebug() << "Loaded API key:" << api_key;
+  // Try to open the located file. Return an empty key on failure.
+  QFile api_file(api_key_path);
+  if(!api_file.open(QIODevice::ReadOnly)) {
+
+    qDebug() << "Failed reading API key: could not open file" << api_key_path;
+    return "";
+  }
+
+  // Create a stream to read from the file; if the file is empty, exit.
+  QTextStream in(&api_file);
+  if(in.atEnd()) {
+    qDebug() << "Failed reading API key: file" << api_key_path << "appears to be empty.";
+    return "";
+  }
+
+  // Read and return the API key.
+  QString api_key = in.readLine();
+  qDebug() << "Loaded API key";
   return api_key;
+}
+
+
+void RouterOpenRouteService::manageKey(QWidget* parent) {
+  // Load the current key - if one exists.
+  QString api_key = key();
+
+  // Create a simple input dialog to ask the user for a key.
+  bool ok;
+  QString new_api_key = QInputDialog::getText(
+    parent,
+    "OpenRouteService setup",
+    "To send requests to OpenRouteService, an API key is needed.\n"
+    "Please, visit https://openrouteservice.org and create an\n"
+    "account. After receiving the API key, please paste it here.",
+    QLineEdit::Normal,
+    api_key,
+    &ok
+  );
+
+  // If the user clicked on "cancel", just exit.
+  if(!ok) {
+    qDebug() << "API key update: aborted";
+    return;
+  }
+
+  // The user clicked on "ok", meaning that we can replace the API key. Start
+  // by getting the path of the API key and making sure it exists. If it does
+  // not, create the file from scratch!
+  QString api_key_path = QStandardPaths::locate(QStandardPaths::AppDataLocation, API_KEY_FILENAME);
+
+  if(api_key_path.isEmpty()) {
+    // Locate the AppData dir for this application and make sure it exists.
+    QDir data_dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    if(!data_dir.exists() && !data_dir.mkpath(".")) {
+      qDebug() << "Failed to create paths for" << data_dir.absolutePath();
+      return;
+    }
+    // Make sure the API key path is now defined.
+    api_key_path = data_dir.filePath(API_KEY_FILENAME);
+  }
+
+  qDebug() << "Storing new API key into" << api_key_path;
+
+  // Create and/or open the API key file so that we can save the new key.
+  QFile api_file(api_key_path);
+  if(!api_file.open(QIODevice::WriteOnly)) {
+    qDebug() << "Could not create or open API key file" << api_key_path;
+    return;
+  }
+
+  // Create a stream and write into the file.
+  QTextStream(&api_file) << new_api_key;
 }
 
 
@@ -61,7 +117,15 @@ RouterOpenRouteService::RouterOpenRouteService(
   network_manager_ = new QNetworkAccessManager(this);
 
   // Load the API key for OpenRouteService.
-  api_key_ = key(parent_widget_);
+  reloadKey();
+}
+
+
+void RouterOpenRouteService::reloadKey() {
+  api_key_ = key();
+  if(api_key_.isEmpty()) {
+    qDebug() << "WARNING: API key for OpenRouteService is empty!";
+  }
 }
 
 

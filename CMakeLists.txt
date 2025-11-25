@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(lpg_planner VERSION 0.0.0)
+project(lpg_planner VERSION 0.1.0)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
